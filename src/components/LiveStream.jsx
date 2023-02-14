@@ -3,7 +3,7 @@ import {CiStreamOn} from 'react-icons/ci'
 function LiveStream() {
     return (
         <div className=''>
-            {/* <img src='http://localhost:8080/live_stream' /> */}
+            <img src='http://localhost:8080/live_stream' />
             
             <div className='flex items-center gap-1 text-red-500'>
                 <CiStreamOn className='text-3xl animate-pulse'/> LIVE

@@ -4,12 +4,14 @@ import { BsCircleSquare } from 'react-icons/bs';
 
 function Radar() {
     const p5ContainerRef = useRef();
-    let btstatus = "";
+    // let btstatus = "";
+    let animState = 0;
     const sketch = (p) => {
         class Victim {
-            constructor(x, y) {
+            constructor(x, y, color) {
                 this.x = x;
                 this.y = y;
+                this.color = color;
             }
         }
         let victims = []
@@ -18,9 +20,15 @@ function Radar() {
         // Use these variables to adjust speed and starting degree
 
         // in rad
-        let revealDeg = 3*p.PI/2
+        let startingDeg = p.PI/2;
+        
+        let revealDeg = startingDeg;
         let revealSpeed = 2*p.PI / 192
-        let framesAfterButton = 0
+        
+        // uncovered, covered, playing
+        
+        let framesAfterButton = 0;
+
         p.setup = () => {
             p.createCanvas(300, 300)
             p.frameRate(30)
@@ -33,25 +41,27 @@ function Radar() {
 
 
             p.push()
-            p.fill(255, 0, 0)
             p.noStroke()
             // p.stroke(255, 0, 0, 1)
             for (let victim of victims) {
+                p.push()
+                p.fill(victim.color[0], victim.color[1], victim.color[2])
                 p.circle(victim.x, victim.y, r)
+                p.pop()
             }
             p.pop()
 
          
 
             // Revealer (large white circle that radially reveals the dots)
-            if(revealDeg < 3*p.PI/2 + (2*p.PI) && btstatus==="50") {
+            if(revealDeg < startingDeg + (2*p.PI) && animState === 2) {
                 p.push()
                 p.noStroke()
                 p.rectMode(p.CENTER)
                 p.translate(150, 200)
                 p.fill(250)
                 let ArcRad = 500
-                p.arc(0, 0, ArcRad, ArcRad, revealDeg, 3*p.PI/2, p.PIE);
+                p.arc(0, 0, ArcRad, ArcRad, revealDeg, startingDeg, p.PIE);
                 p.pop()
 
             }
@@ -63,7 +73,7 @@ function Radar() {
             p.pop()
 
             // Sweeper
-            if(revealDeg < 3*p.PI/2 + (2*p.PI) && btstatus==="50") {
+            if(revealDeg < startingDeg + (2*p.PI) && animState === 2) {
                 p.push()
                 let l = 500
                 p.rectMode(p.CENTER)
@@ -74,12 +84,26 @@ function Radar() {
 
                 revealDeg += revealSpeed  
             }
-            if(btstatus==="50") {
-                framesAfterButton += 1
-            }
-            if(framesAfterButton<3){
+            // if(btstatus==="50") {
+            //     framesAfterButton += 1
+            // }
+            // if(framesAfterButton<3){
+            //     p.fill(250)
+            //     p.circle(150,150,500)
+            // }
+            if(animState == 1 || (animState == 2 && framesAfterButton < 3)) {
                 p.fill(250)
                 p.circle(150,150,500)
+            }
+            if(animState == 2) {
+                framesAfterButton += 1
+            }
+
+            // reset
+            if(revealDeg > startingDeg + (2*p.PI)) {
+                revealDeg = startingDeg
+                animState = 0;
+                framesAfterButton = 0;
             }
         }
 
@@ -93,28 +117,42 @@ function Radar() {
                     }
                 }
             }
-            else {
-                victims.push(new Victim(p.mouseX, p.mouseY))
+            if (p.mouseButton === p.LEFT) {
+                victims.push(new Victim(p.mouseX, p.mouseY, [255, 0, 0]))
+                return false;
+            }
+            if (p.mouseButton === p.CENTER) {
+                animState = (!animState)
+                return false;
+            }
+        }
+        p.keyPressed = () => {
+            if(p.key == 'g'){
+                victims.push(new Victim(p.mouseX, p.mouseY, [0, 255, 0]))
+                return false;
             }
         }
     }
-    const fetchSerial = () => {
+    const fetchAnimationStatus = () => {
         console.log("fetching")
-        fetch('http://192.168.59.10:8080/start_anim').then(res => {
+        fetch('http://192.168.1.83:8080/animation_status').then(res => {
             return res.json()
         }).then(data => {
-            console.log(data.value)
-            btstatus = data.value
+            console.log(data["animation_status"])
+            if (data["animation_status"] === "start") {
+                animState = 2;
+            }
         }).catch((err) => {
-            // console.error(err)
+            console.error(err)
         })
     }
     useEffect(() => {
         const p5Instance = new p5(sketch, p5ContainerRef.current);
         document.addEventListener('contextmenu', event => event.preventDefault());
-        setInterval(fetchSerial, 250)
+        let statusFetcherId = setInterval(fetchAnimationStatus, 250);
         return () => {
-            p5Instance.remove()
+            p5Instance.remove();
+            clearInterval(statusFetcherId);
         }
     }, [])
     return (

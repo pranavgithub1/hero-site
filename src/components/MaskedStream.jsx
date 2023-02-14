@@ -5,7 +5,7 @@ import {BiPlusMedical} from 'react-icons/bi'
 function MaskedStream() {
     return (
         <div>
-            {/* <img src='http://localhost:8080/video_feed' /> */}
+            <img src='http://localhost:8080/video_feed' />
             <div className='flex items-center gap-1 text-green-500 font-mono mt-2'>
                 <AiOutlineLoading3Quarters className='text-2xl animate-spin mx-2'/> HERO Vision Analysis
             </div>
